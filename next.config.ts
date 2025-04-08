@@ -1,7 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  modularizeImports: {
+    '@/components/module': {
+      transform: '@/components/module/{{member}}',
+    },
+  },
 };
 
 export default nextConfig;

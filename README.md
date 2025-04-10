@@ -93,21 +93,41 @@ yarn dev
 ## 📂 Project Structure
 
 ```
-src/
-├── app/                  # Next.js app directory
-│   ├── api/              # API routes
-│   ├── auth/             # Authentication pages
-│   ├── components/       # React components
-│   ├── dashboard/        # Dashboard page
-│   ├── lesson-generator/ # Lesson generator page
-│   ├── lessons/          # Lesson view/edit pages
-│   └── modules/          # Module management pages
-├── lib/                  # Utility functions and hooks
-│   ├── AuthContext.tsx   # Authentication context
-│   ├── firebase.ts       # Firebase configuration
-│   ├── groq.ts           # Groq API integration
-│   └── types.ts          # TypeScript types
-└── public/               # Static assets
+.
+├── .env.local
+├── .gitignore
+├── next-env.d.ts
+├── next.config.ts
+├── package-lock.json
+├── package.json
+├── postcss.config.mjs
+├── README.md
+├── tsconfig.json
+└── src/
+    ├── app/                   # Next.js app directory
+    │   ├── alllessons/        # All lessons page
+    │   ├── api/               # API routes
+    │   ├── auth/              # Authentication pages
+    │   ├── components/        # React components
+    │   │   ├── layout/        # Layout components
+    │   │   ├── lesson/        # Lesson components
+    │   │   ├── module/        # Module components
+    │   │   └── ui/            # UI components
+    │   ├── dashboard/         # Dashboard page
+    │   ├── lesson-generator/  # Lesson generator page
+    │   ├── lessons/[id]/      # Individual lesson pages with dynamic routes
+    │   ├── module-builder/    # Module builder page
+    │   ├── modules/           # Modules management page
+    │   ├── profile/           # User profile page
+    │   ├── settings/          # Settings page
+    │   ├── favicon.ico        # Site favicon
+    │   ├── globals.css        # Global CSS styles
+    │   ├── layout.tsx         # Root layout component
+    │   ├── not-found.tsx      # 404 page
+    │   └── page.tsx           # Home page
+    ├── lib/                   # Utility functions and libraries
+    └── styles/                # Additional styles
+        └── providers.tsx      # Style providers
 ```
 
 ## ✨ Key Components

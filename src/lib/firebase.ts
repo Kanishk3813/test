@@ -135,9 +135,11 @@ export async function getAllModules(): Promise<string[]> {
  */
 export async function getLessonById(id: string): Promise<Lesson | null> {
   try {
+    // Ensure we have a clean ID
     const cleanId = id.trim();
     console.log(`Attempting to fetch lesson with clean ID: ${cleanId}`);
     
+    // Try the original ID first
     const docRef = doc(db, 'lessons', cleanId);
     const docSnap = await getDoc(docRef);
     
@@ -148,6 +150,8 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
     
     console.log(`No lesson found with ID: ${cleanId}`);
     
+    // Try various ID formats in case dashboard is using a different format than the editor
+    // Remove any "lesson_" prefix if it exists
     if (cleanId.startsWith('lesson_')) {
       const idWithoutPrefix = cleanId.substring(7);
       console.log(`Trying without prefix: ${idWithoutPrefix}`);
@@ -160,6 +164,7 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
       }
     }
     
+    // Check if there's an underscore and try just the first part
     if (cleanId.includes('_')) {
       const firstPart = cleanId.split('_')[0];
       if (firstPart !== 'lesson') { 
@@ -172,6 +177,34 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
           return { id: firstPartSnap.id, ...firstPartSnap.data() } as Lesson;
         }
       }
+    }
+    
+    // If none of the above worked, try one more approach - query all lessons and find by ID
+    // This is a fallback in case the issue is with how IDs are stored vs how they're being passed
+    console.log("Trying to find lesson by querying all lessons");
+    const q = query(collection(db, 'lessons'));
+    const querySnapshot = await getDocs(q);
+    
+    let foundLesson: Lesson | null = null;
+    
+    querySnapshot.forEach((doc) => {
+      const lessonData = doc.data() as Lesson;
+      const docId = doc.id;
+      
+      // Check for various ID formats and matches
+      if (
+        docId === cleanId || 
+        docId === cleanId.replace('lesson_', '') ||
+        (lessonData.id && lessonData.id === cleanId) ||
+        (lessonData.id && lessonData.id.replace('lesson_', '') === cleanId)
+      ) {
+        console.log(`Found lesson by querying all: ${docId}`);
+        foundLesson = { id: docId, ...lessonData };
+      }
+    });
+    
+    if (foundLesson) {
+      return foundLesson;
     }
     
     console.log(`No lesson found with any ID variation for: ${id}`);

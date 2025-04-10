@@ -36,19 +36,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // Convert Firebase user to our User type
   const formatUser = async (user: FirebaseUser): Promise<User> => {
-    // Check if user exists in Firestore
     const userRef = doc(db, 'users', user.uid);
     const userDoc = await getDoc(userRef);
     
     if (!userDoc.exists()) {
-      // Create new user document if it doesn't exist
       const newUser: User = {
         id: user.uid,
         email: user.email!,
-        name: user.displayName || null, // Use null instead of undefined
-        photoURL: user.photoURL || null, // Use null instead of undefined
+        name: user.displayName || null, 
+        photoURL: user.photoURL || null, 
         createdAt: new Date().toISOString(),
       };
       
@@ -60,7 +57,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       return newUser;
     }
     
-    // Return existing user data
     return userDoc.data() as User;
   };
 
@@ -91,10 +87,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const { user } = await createUserWithEmailAndPassword(auth, email, password);
       
-      // Update profile with name
       await updateProfile(user, { displayName: name });
       
-      // Create user in Firestore
       await formatUser(user);
     } catch (error) {
       console.error('Error signing up:', error);

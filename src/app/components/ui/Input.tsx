@@ -1,12 +1,14 @@
 // src/app/components/ui/Input.tsx
-import { InputHTMLAttributes } from 'react';
+'use client';
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {}
+import React from 'react';
 
-export function Input({ className = '', ...props }: InputProps) {
+interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {}
+
+export function Input({ className, ...props }: InputProps) {
   return (
     <input
-      className={`w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${className}`}
+      className={`w-full rounded-md border border-gray-300 py-2 px-3 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 ${className || ''}`}
       {...props}
     />
   );

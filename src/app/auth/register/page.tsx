@@ -21,7 +21,6 @@ export default function RegisterPage() {
     setLoading(true);
     setError('');
 
-    // Validate form
     if (password !== confirmPassword) {
       setError('Passwords do not match');
       setLoading(false);

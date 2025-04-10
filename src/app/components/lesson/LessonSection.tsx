@@ -1,16 +1,16 @@
 // src/app/components/lesson/LessonSection.tsx
-import { ReactNode } from 'react';
+'use client';
 
 interface LessonSectionProps {
   title: string;
-  content: ReactNode;
+  content: React.ReactNode;
 }
 
 export function LessonSection({ title, content }: LessonSectionProps) {
   return (
-    <section className="border-b border-gray-200 pb-6">
-      <h3 className="text-lg font-semibold mb-4">{title}</h3>
-      {content}
-    </section>
+    <div className="lesson-section">
+      <h3 className="text-lg font-semibold mb-3">{title}</h3>
+      <div className="ml-1">{content}</div>
+    </div>
   );
 }

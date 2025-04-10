@@ -1,41 +1,29 @@
 // src/app/components/ui/Button.tsx
-import { ButtonHTMLAttributes, ReactNode } from 'react';
+'use client';
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  children: ReactNode;
-  variant?: 'primary' | 'outline' | 'danger';
-  size?: 'sm' | 'md' | 'lg';
+import React from 'react';
+
+interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
+  variant?: 'default' | 'outline' | 'secondary';
+  children: React.ReactNode;
 }
 
-export function Button({ 
-  children, 
-  variant = 'primary', 
-  size = 'md', 
-  className = '',
-  ...props 
-}: ButtonProps) {
-  const baseClasses = 'inline-flex items-center justify-center font-medium rounded-md transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2';
+export function Button({ variant = 'default', children, className, ...props }: ButtonProps) {
+  const baseStyles = "inline-flex items-center justify-center rounded-md font-medium transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed";
   
-  const variantClasses = {
-    primary: 'bg-blue-600 hover:bg-blue-700 text-white focus:ring-blue-500',
-    outline: 'bg-white hover:bg-gray-50 text-gray-700 border border-gray-300 focus:ring-blue-500',
-    danger: 'bg-red-600 hover:bg-red-700 text-white focus:ring-red-500',
+  const variants = {
+    default: "bg-blue-600 text-white hover:bg-blue-700 shadow",
+    outline: "border border-gray-300 bg-white hover:bg-gray-50 text-gray-700",
+    secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
   };
   
-  const sizeClasses = {
-    sm: 'text-sm px-3 py-1.5',
-    md: 'text-sm px-4 py-2',
-    lg: 'text-base px-6 py-3',
-  };
+  const sizeStyles = "h-10 py-2 px-4 text-sm";
   
-  const disabledClasses = props.disabled ? 'opacity-50 cursor-not-allowed' : '';
+  const combinedClassName = `${baseStyles} ${variants[variant]} ${sizeStyles} ${className || ''}`;
   
   return (
-    <button
-      className={`${baseClasses} ${variantClasses[variant]} ${sizeClasses[size]} ${disabledClasses} ${className}`}
-      {...props}
-    >
+    <button className={combinedClassName} {...props}>
       {children}
     </button>
   );
-}
+} 

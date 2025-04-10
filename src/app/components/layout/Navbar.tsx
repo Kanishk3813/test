@@ -17,10 +17,8 @@ export function Navbar() {
 
   const handleAuthClick = () => {
     if (currentUser) {
-      // If user is logged in, show dropdown
       toggleDropdown();
     } else {
-      // If user is not logged in, redirect to login page
       router.push('/auth/login');
     }
   };

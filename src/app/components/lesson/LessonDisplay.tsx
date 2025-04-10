@@ -1,20 +1,24 @@
-// src/app/components/lesson/LessonDisplay.tsx
+// Updated src/app/components/lesson/LessonDisplay.tsx
 'use client';
 
 import { Lesson } from '@/lib/types';
 import { LessonSection } from './LessonSection';
 import { Button } from '../ui/Button';
 import { useState } from 'react';
+import { saveLesson } from '@/lib/firebase';
+import { useRouter } from 'next/navigation';
 
 interface LessonDisplayProps {
   lesson: Lesson;
+  viewOnly?: boolean;
 }
 
-export function LessonDisplay({ lesson }: LessonDisplayProps) {
+export function LessonDisplay({ lesson, viewOnly = false }: LessonDisplayProps) {
   const [activeTab, setActiveTab] = useState<string>('preview');
+  const [isSaving, setIsSaving] = useState<boolean>(false);
+  const router = useRouter();
   
   const handleDownload = () => {
-    // Create a formatted lesson text
     const lessonText = `# ${lesson.title}
 
 ## Description
@@ -48,11 +52,38 @@ ${lesson.assessment}
     URL.revokeObjectURL(url);
   };
 
+  const handleSave = async () => {
+    try {
+      setIsSaving(true);
+      const lessonToSave = {
+        ...lesson,
+        createdAt: new Date().toISOString(),
+        module: lesson.courseTopic || 'Uncategorized',
+      };
+      
+      await saveLesson(lessonToSave);
+      setIsSaving(false);
+      
+      alert('Lesson saved successfully!');
+      
+      router.push('/dashboard');
+    } catch (error) {
+      console.error('Error saving lesson:', error);
+      alert('Failed to save lesson. Please try again.');
+      setIsSaving(false);
+    }
+  };
+
   return (
     <div className="lesson-display">
       <div className="flex justify-between items-center mb-6">
-        <h2 className="text-xl font-semibold">Generated Lesson</h2>
+        <h2 className="text-xl font-semibold">{viewOnly ? lesson.title : 'Generated Lesson'}</h2>
         <div className="flex gap-2">
+          {!viewOnly && (
+            <Button onClick={handleSave} disabled={isSaving}>
+              {isSaving ? 'Saving...' : 'Save Lesson'}
+            </Button>
+          )}
           <Button onClick={handleDownload} variant="outline">
             <svg className="w-4 h-4 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path>
@@ -62,31 +93,56 @@ ${lesson.assessment}
         </div>
       </div>
 
-      <div className="bg-gray-100 rounded-md p-1 flex mb-6">
-        <button 
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'preview' ? 'bg-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
-          }`}
-          onClick={() => setActiveTab('preview')}
-        >
-          Preview
-        </button>
-        <button 
-          className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
-            activeTab === 'structure' ? 'bg-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
-          }`}
-          onClick={() => setActiveTab('structure')}
-        >
-          Lesson Structure
-        </button>
-      </div>
+      {!viewOnly && (
+        <div className="bg-gray-100 rounded-md p-1 flex mb-6">
+          <button 
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'preview' ? 'bg-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('preview')}
+          >
+            Preview
+          </button>
+          <button 
+            className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-colors ${
+              activeTab === 'structure' ? 'bg-white shadow-sm' : 'text-gray-600 hover:bg-gray-200'
+            }`}
+            onClick={() => setActiveTab('structure')}
+          >
+            Lesson Structure
+          </button>
+        </div>
+      )}
 
-      {activeTab === 'preview' ? (
+      {(activeTab === 'preview' || viewOnly) ? (
         <div className="space-y-6">
-          <div>
-            <h1 className="text-2xl font-bold mb-2">{lesson.title}</h1>
-            <p className="text-gray-700">{lesson.description}</p>
-          </div>
+          {!viewOnly && (
+            <div>
+              <h1 className="text-2xl font-bold mb-2">{lesson.title}</h1>
+              <p className="text-gray-700">{lesson.description}</p>
+            </div>
+          )}
+
+          {viewOnly && (
+            <div className="mb-8">
+              <p className="text-gray-700 mb-4">{lesson.description}</p>
+              <div className="flex flex-wrap gap-2 mb-4">
+                {lesson.module && (
+                  <span className="bg-blue-100 text-blue-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                    {lesson.module}
+                  </span>
+                )}
+                <span className="bg-purple-100 text-purple-800 text-xs font-medium px-2.5 py-0.5 rounded capitalize">
+                  {lesson.difficultyLevel}
+                </span>
+                {lesson.createdAt && (
+                  <span className="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-0.5 rounded">
+                    Created: {new Date(lesson.createdAt).toLocaleDateString()}
+                  </span>
+                )}
+              </div>
+            </div>
+          )}
 
           <LessonSection 
             title="Learning Outcomes" 

@@ -8,11 +8,9 @@ export interface User {
   }
   
   export interface Lesson {
-    id: string;
+    id?: string;
     title: string;
     description: string;
-    targetAudience: string;
-    difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
     learningOutcomes: string[];
     keyConcepts: {
       term: string;
@@ -24,43 +22,39 @@ export interface User {
       instructions: string;
     }[];
     assessment: string;
+    targetAudience: string;
+    difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
     createdAt?: string;
-    updatedAt?: string;
-    order?: number;
-    moduleId?: string;
-    estimatedTime?: number; // in minutes
-    prerequisites?: string[];
+    module?: string;
+    courseTopic?: string;
+    updatedAt: string;
+    status: 'draft' | 'published';
     author?: string;
-    status?: 'draft' | 'published';
   }
-  
+
   export interface Module {
     id: string;
     title: string;
     description: string;
-    courseId?: string;
-    lessons: Lesson[] | string[]; // can be array of lesson IDs or lesson objects
-    prerequisites?: string[];
-    learningOutcomes?: string[];
-    estimatedCompletionTime?: number; // in minutes
+    lessons: string[]; 
+    lessonCount?: number; 
     difficultyLevel: 'beginner' | 'intermediate' | 'advanced';
-    order?: number;
     createdAt: string;
     updatedAt: string;
-    author: string;
-    status: 'draft' | 'published';
+    completionPercentage?: number; 
+    status: 'active' | 'draft' | 'archived';
   }
   
   export interface Course {
     id: string;
     title: string;
     description: string;
-    modules: Module[] | string[]; // can be array of module IDs or module objects
+    modules: Module[] | string[]; 
     author: string;
     targetAudience?: string;
     learningOutcomes?: string[];
     difficultyLevel?: 'beginner' | 'intermediate' | 'advanced';
-    estimatedCompletionTime?: number; // in minutes
+    estimatedCompletionTime?: number; 
     createdAt: string;
     updatedAt: string;
     status: 'draft' | 'published';

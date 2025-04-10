@@ -98,6 +98,7 @@ export function Navbar() {
                         onClick={() => {
                           signOut();
                           setDropdownOpen(false);
+                          router.push('/');
                         }}
                         className="w-full text-left block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                       >

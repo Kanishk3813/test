@@ -12,14 +12,16 @@ import {
   getDocs, 
   query, 
   orderBy, 
-  getDoc
+  getDoc,
+  where,
+  deleteDoc,
+  setDoc
 } from 'firebase/firestore';
 import { 
   getStorage 
 } from 'firebase/storage';
-import { Lesson } from './types';
+import { Lesson, Module } from './types';
 
-// Firebase config
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -29,7 +31,6 @@ const firebaseConfig = {
   appId: process.env.NEXT_PUBLIC_FIREBASE_APP_ID,
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
@@ -105,6 +106,36 @@ export async function getLessonsByModule(module: string): Promise<Lesson[]> {
 }
 
 /**
+ * Get lessons by their IDs
+ * @param lessonIds Array of lesson IDs to fetch
+ * @returns Array of lessons with the specified IDs
+ */
+export async function getLessonsByIds(lessonIds: string[]): Promise<Lesson[]> {
+  try {
+    if (!lessonIds || lessonIds.length === 0) {
+      return [];
+    }
+    
+    const lessons: Lesson[] = [];
+    
+    const allLessons = await getAllLessons();
+    
+    const filteredLessons = allLessons.filter(lesson => 
+      lesson.id && lessonIds.includes(lesson.id)
+    );
+    
+    const orderedLessons = lessonIds.map(id => 
+      filteredLessons.find(lesson => lesson.id === id)
+    ).filter(lesson => lesson !== undefined) as Lesson[];
+    
+    return orderedLessons;
+  } catch (error) {
+    console.error('Error getting lessons by IDs:', error);
+    throw error;
+  }
+}
+
+/**
  * Get all unique modules from lessons
  * @returns Array of unique module names
  */
@@ -129,17 +160,124 @@ export async function getAllModules(): Promise<string[]> {
 }
 
 /**
+ * Create a new module in Firestore
+ * @param module The module object to create
+ * @returns The ID of the created module
+ */
+export async function createModule(module: Module): Promise<string> {
+  try {
+    if (module.id) {
+      const docRef = doc(db, 'modules', module.id);
+      await setDoc(docRef, {
+        ...module,
+        createdAt: module.createdAt || new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      return module.id;
+    } else {
+      const docRef = await addDoc(collection(db, 'modules'), {
+        ...module,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      });
+      return docRef.id;
+    }
+  } catch (error) {
+    console.error('Error creating module:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get a module by its ID
+ * @param id The ID of the module to fetch
+ * @returns The module object or null if not found
+ */
+export async function getModuleById(id: string): Promise<Module | null> {
+  try {
+    const docRef = doc(db, 'modules', id);
+    const docSnap = await getDoc(docRef);
+    
+    if (docSnap.exists()) {
+      return { id: docSnap.id, ...docSnap.data() } as Module;
+    }
+    
+    return null;
+  } catch (error) {
+    console.error('Error getting module by ID:', error);
+    throw error;
+  }
+}
+
+/**
+ * Get all modules from Firestore
+ * @returns Array of modules
+ */
+export async function getAllModulesData(): Promise<Module[]> {
+  try {
+    const q = query(collection(db, 'modules'), orderBy('createdAt', 'desc'));
+    const querySnapshot = await getDocs(q);
+    
+    const modules: Module[] = [];
+    querySnapshot.forEach((doc) => {
+      modules.push({ id: doc.id, ...doc.data() } as Module);
+    });
+    
+    return modules;
+  } catch (error) {
+    console.error('Error getting all modules:', error);
+    throw error;
+  }
+}
+
+/**
+ * Update an existing module
+ * @param module The module object with updated data
+ */
+export async function updateModule(module: Module): Promise<void> {
+  try {
+    if (!module.id) {
+      throw new Error('Cannot update module: No module ID provided');
+    }
+    
+    const docRef = doc(db, 'modules', module.id);
+    
+    const moduleWithUpdatedTime = {
+      ...module,
+      updatedAt: new Date().toISOString()
+    };
+    
+    await updateDoc(docRef, moduleWithUpdatedTime);
+  } catch (error) {
+    console.error('Error updating module:', error);
+    throw error;
+  }
+}
+
+/**
+ * Delete a module
+ * @param id The ID of the module to delete
+ */
+export async function deleteModule(id: string): Promise<void> {
+  try {
+    const docRef = doc(db, 'modules', id);
+    await deleteDoc(docRef);
+  } catch (error) {
+    console.error('Error deleting module:', error);
+    throw error;
+  }
+}
+
+/**
  * Get a lesson by its ID
  * @param id The ID of the lesson to fetch
  * @returns The lesson object or null if not found
  */
 export async function getLessonById(id: string): Promise<Lesson | null> {
   try {
-    // Ensure we have a clean ID
     const cleanId = id.trim();
     console.log(`Attempting to fetch lesson with clean ID: ${cleanId}`);
     
-    // Try the original ID first
     const docRef = doc(db, 'lessons', cleanId);
     const docSnap = await getDoc(docRef);
     
@@ -150,8 +288,6 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
     
     console.log(`No lesson found with ID: ${cleanId}`);
     
-    // Try various ID formats in case dashboard is using a different format than the editor
-    // Remove any "lesson_" prefix if it exists
     if (cleanId.startsWith('lesson_')) {
       const idWithoutPrefix = cleanId.substring(7);
       console.log(`Trying without prefix: ${idWithoutPrefix}`);
@@ -164,7 +300,6 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
       }
     }
     
-    // Check if there's an underscore and try just the first part
     if (cleanId.includes('_')) {
       const firstPart = cleanId.split('_')[0];
       if (firstPart !== 'lesson') { 
@@ -179,8 +314,6 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
       }
     }
     
-    // If none of the above worked, try one more approach - query all lessons and find by ID
-    // This is a fallback in case the issue is with how IDs are stored vs how they're being passed
     console.log("Trying to find lesson by querying all lessons");
     const q = query(collection(db, 'lessons'));
     const querySnapshot = await getDocs(q);
@@ -191,7 +324,6 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
       const lessonData = doc.data() as Lesson;
       const docId = doc.id;
       
-      // Check for various ID formats and matches
       if (
         docId === cleanId || 
         docId === cleanId.replace('lesson_', '') ||
@@ -222,7 +354,13 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
  */
 export async function updateLesson(id: string, lesson: Lesson): Promise<void> {
   try {
-    const docRef = doc(db, 'lessons', id);
+    const actualLesson = await getLessonById(id);
+    
+    if (!actualLesson || !actualLesson.id) {
+      throw new Error(`Cannot update lesson: No lesson found with ID ${id}`);
+    }
+    
+    const docRef = doc(db, 'lessons', actualLesson.id);
     
     const lessonWithUpdatedTime = {
       ...lesson,
@@ -232,6 +370,7 @@ export async function updateLesson(id: string, lesson: Lesson): Promise<void> {
     const { id: _, ...lessonData } = lessonWithUpdatedTime;
     
     await updateDoc(docRef, lessonData);
+    console.log(`Successfully updated lesson with ID: ${actualLesson.id}`);
   } catch (error) {
     console.error('Error updating lesson:', error);
     throw error;

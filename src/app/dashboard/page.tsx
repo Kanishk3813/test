@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { getAllLessons, getAllModules } from "@/lib/firebase";
+import { getAllLessons, getAllModulesData } from "@/lib/firebase";
 import { Lesson, Module } from "@/lib/types";
 
 export default function Dashboard() {
@@ -22,41 +22,10 @@ export default function Dashboard() {
         console.log("Retrieved lessons:", lessons); 
         setRecentLessons(lessons);
 
-        const moduleNames = await getAllModules();
-
-        const moduleObjects: Module[] = moduleNames.map((moduleName) => {
-          const moduleLessons = lessons.filter(
-            (lesson) =>
-              lesson.module === moduleName || lesson.courseTopic === moduleName
-          );
-
-          const completedLessons = moduleLessons.filter(
-            (lesson) => Math.random() > 0.5
-          ).length;
-          const completionPercentage =
-            moduleLessons.length > 0
-              ? Math.round((completedLessons / moduleLessons.length) * 100)
-              : 0;
-
-          const now = new Date().toISOString();
-
-          return {
-            id: moduleName.replace(/\s+/g, "-").toLowerCase(),
-            title: moduleName,
-            description: `Collection of lessons about ${moduleName}`,
-            lessons: moduleLessons
-              .map((lesson) => lesson.id || "")
-              .filter(Boolean),
-            lessonCount: moduleLessons.length,
-            difficultyLevel: "intermediate",
-            createdAt: now,
-            updatedAt: now,
-            completionPercentage,
-            status: "active",
-          };
-        });
-
-        setModules(moduleObjects);
+        const moduleData = await getAllModulesData();
+        console.log("Retrieved modules:", moduleData);
+        setModules(moduleData);
+        
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -66,14 +35,6 @@ export default function Dashboard() {
 
     fetchData();
   }, []);
-
-  const getValidLessonId = (lesson: Lesson): string => {
-    if (!lesson.id) return "";
-    
-    console.log("Original lesson ID:", lesson.id);
-    
-    return lesson.id;
-  };
 
   return (
     <div className="container mx-auto px-4 py-8">
@@ -221,7 +182,7 @@ export default function Dashboard() {
                             {module.title}
                           </h3>
                           <span className="text-sm text-gray-500">
-                            {module.lessons.length} lessons
+                            {module.lessons ? module.lessons.length : 0} lessons
                           </span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">

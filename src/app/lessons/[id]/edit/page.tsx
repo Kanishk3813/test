@@ -8,7 +8,6 @@ import { Lesson } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/Button';
 
-// Define the section type for content editor
 interface ContentSection {
   id: string;
   title: string;
@@ -28,16 +27,12 @@ export default function EditLessonPage() {
   const [regenerationPrompt, setRegenerationPrompt] = useState<string>('');
   const [activeTab, setActiveTab] = useState<'content' | 'outcomes' | 'concepts' | 'activities' | 'assessment'>('content');
 
-  // Content sections for the editor
   const [contentSections, setContentSections] = useState<ContentSection[]>([]);
   
-  // Learning outcomes
   const [learningOutcomes, setLearningOutcomes] = useState<string[]>([]);
   
-  // Key concepts
   const [keyConcepts, setKeyConcepts] = useState<{term: string; definition: string}[]>([]);
   
-  // Activities
   const [activities, setActivities] = useState<{title: string; instructions: string}[]>([]);
 
   useEffect(() => {
@@ -56,23 +51,17 @@ export default function EditLessonPage() {
         if (lessonData) {
           setLesson(lessonData);
           
-          // Initialize learning outcomes
           setLearningOutcomes(lessonData.learningOutcomes || []);
           
-          // Initialize key concepts
           setKeyConcepts(lessonData.keyConcepts || []);
           
-          // Initialize activities
           setActivities(lessonData.activities || []);
           
-          // Parse content into sections
           if (lessonData.content) {
-            // For demonstration, we'll split content by double newlines to create sections
             const contentParts = lessonData.content.split('\n\n');
             const sections: ContentSection[] = [];
             
             if (contentParts.length > 0) {
-              // Create Introduction section
               sections.push({
                 id: 'intro',
                 title: 'Introduction',
@@ -80,7 +69,6 @@ export default function EditLessonPage() {
                 type: 'introduction'
               });
               
-              // Create content sections
               for (let i = 1; i < contentParts.length - 1; i++) {
                 sections.push({
                   id: `section-${i}`,
@@ -90,7 +78,6 @@ export default function EditLessonPage() {
                 });
               }
               
-              // Create conclusion section if there are multiple parts
               if (contentParts.length > 1) {
                 sections.push({
                   id: 'conclusion',
@@ -100,7 +87,6 @@ export default function EditLessonPage() {
                 });
               }
             } else {
-              // Create default sections if content can't be parsed
               sections.push({
                 id: 'intro',
                 title: 'Introduction',
@@ -111,7 +97,6 @@ export default function EditLessonPage() {
             
             setContentSections(sections);
           } else {
-            // Create default sections if no content
             setContentSections([
               {
                 id: 'intro',
@@ -188,10 +173,8 @@ export default function EditLessonPage() {
       const newSections = [...prevSections];
       
       if (direction === 'up' && index > 0) {
-        // Swap with previous section
         [newSections[index], newSections[index - 1]] = [newSections[index - 1], newSections[index]];
       } else if (direction === 'down' && index < newSections.length - 1) {
-        // Swap with next section
         [newSections[index], newSections[index + 1]] = [newSections[index + 1], newSections[index]];
       }
       
@@ -207,13 +190,10 @@ export default function EditLessonPage() {
   const handleRegenerateConfirm = async () => {
     if (!regeneratingSectionId) return;
     
-    // Here you would call your AI service to regenerate content
-    // For demonstration, we'll simulate a regeneration with a simple transformation
     const sectionIndex = contentSections.findIndex(s => s.id === regeneratingSectionId);
     if (sectionIndex !== -1) {
       const section = contentSections[sectionIndex];
       
-      // Simulate AI regeneration (in a real app, you'd call your AI service)
       const regeneratedContent = regenerationPrompt ? 
         `Regenerated content based on prompt: "${regenerationPrompt}".\n\n${section.content}` : 
         `Improved version of: ${section.content}`;
@@ -230,7 +210,6 @@ export default function EditLessonPage() {
     setRegenerationPrompt('');
   };
 
-  // Handle learning outcomes
   const addLearningOutcome = () => {
     setLearningOutcomes([...learningOutcomes, '']);
   };
@@ -245,7 +224,6 @@ export default function EditLessonPage() {
     setLearningOutcomes(learningOutcomes.filter((_, i) => i !== index));
   };
 
-  // Handle key concepts
   const addKeyConcept = () => {
     setKeyConcepts([...keyConcepts, { term: '', definition: '' }]);
   };
@@ -260,7 +238,6 @@ export default function EditLessonPage() {
     setKeyConcepts(keyConcepts.filter((_, i) => i !== index));
   };
 
-  // Handle activities
   const addActivity = () => {
     setActivities([...activities, { title: '', instructions: '' }]);
   };
@@ -276,18 +253,22 @@ export default function EditLessonPage() {
   };
 
   const handleSave = async () => {
-    if (!id || typeof id !== 'string' || !lesson) {
-      setError('Invalid lesson ID or lesson data');
+    if (!lesson) {
+      setError('Invalid lesson data');
       return;
     }
-
+  
     try {
       setIsSaving(true);
       
-      // Combine content sections into a single string
+      const lessonId = lesson.id; 
+      
+      if (!lessonId) {
+        throw new Error('Cannot update lesson: Missing lesson ID');
+      }
+      
       const combinedContent = contentSections.map(section => section.content).join('\n\n');
       
-      // Update the lesson object with all edited data
       const updatedLesson: Lesson = {
         ...lesson,
         content: combinedContent,
@@ -297,12 +278,14 @@ export default function EditLessonPage() {
         updatedAt: new Date().toISOString()
       };
       
-      await updateLesson(id, updatedLesson);
+      console.log(`Updating lesson with ID: ${lessonId}`);
+      await updateLesson(lessonId, updatedLesson);
+      
       alert('Lesson updated successfully!');
-      router.push(`/lessons/${id}`);
+      router.push(`/lessons/${lessonId}`);
     } catch (err) {
       console.error('Error updating lesson:', err);
-      setError('Failed to update lesson. Please try again.');
+      setError(`Failed to update lesson: ${err instanceof Error ? err.message : 'Unknown error'}`);
     } finally {
       setIsSaving(false);
     }
@@ -445,7 +428,6 @@ export default function EditLessonPage() {
         </div>
       </div>
       
-      {/* Tabs for different sections */}
       <div className="mb-6">
         <div className="border-b border-gray-200">
           <nav className="flex -mb-px">

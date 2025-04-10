@@ -4,9 +4,6 @@
 
 CourseGPT is an intelligent authoring tool that empowers educators and content creators to efficiently create, organize, and enhance educational content. This innovative platform transforms the course creation process through AI-assisted content generation, structured templates, and intuitive organization tools.
 
-## Demo Video 🎥
-
-https://github.com/user-attachments/assets/cc3a85c4-9eab-4027-a354-7138b0d91c98
 
 ## 🚀 Features
 

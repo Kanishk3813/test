@@ -39,7 +39,7 @@ The dashboard provides an overview of your course content, showing:
 
 ## 🛠️ Tech Stack
 
-- **Frontend**: React/Next.js
+- **Frontend**: Next.js
 - **Styling**: Tailwind CSS
 - **Authentication**: Firebase Auth
 - **Database**: Firebase Firestore

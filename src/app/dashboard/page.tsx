@@ -27,13 +27,13 @@ export default function Dashboard() {
 
         // Pass the user ID to the Firebase functions
         const lessons = await getAllLessons(currentUser.id);
-        console.log("Retrieved lessons:", lessons); 
+        console.log("Retrieved lessons:", lessons);
         setRecentLessons(lessons);
 
         const moduleData = await getAllModulesData(currentUser.id);
         console.log("Retrieved modules:", moduleData);
         setModules(moduleData);
-        
+
         setIsLoading(false);
       } catch (error) {
         console.error("Error fetching dashboard data:", error);
@@ -66,7 +66,9 @@ export default function Dashboard() {
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-          <p className="text-gray-600">Welcome, {currentUser.name || currentUser.email}</p>
+          <p className="text-gray-600">
+            Welcome, {currentUser.name || currentUser.email}
+          </p>
         </div>
         <div className="mt-4 md:mt-0">
           <Link href="/lesson-generator">
@@ -128,7 +130,7 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Recent Lessons</h2>
                 <Link
-                  href="/lessons"
+                  href="/alllessons"
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   View All
@@ -136,7 +138,7 @@ export default function Dashboard() {
               </div>
               <div className="bg-white rounded-lg shadow divide-y divide-gray-200">
                 {recentLessons.length > 0 ? (
-                  recentLessons.slice(0, 5).map((lesson) => (
+                  recentLessons.slice(0, 3).map((lesson) => (
                     <div key={lesson.id} className="p-4 hover:bg-gray-50">
                       <div className="flex justify-between">
                         <div>
@@ -191,7 +193,7 @@ export default function Dashboard() {
               <div className="flex justify-between items-center mb-4">
                 <h2 className="text-xl font-semibold">Course Modules</h2>
                 <Link
-                  href="/modules/create"
+                  href="/module-builder" 
                   className="text-blue-600 hover:text-blue-800 text-sm font-medium"
                 >
                   Create Module

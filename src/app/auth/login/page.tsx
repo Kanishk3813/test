@@ -63,7 +63,7 @@ export default function LoginPage() {
               </div>
             )}
             
-            <div>
+            {/* <div>
               <div>
                 <button
                   onClick={handleGoogleSignIn}
@@ -90,7 +90,7 @@ export default function LoginPage() {
                   <span className="px-2 bg-gray-50 text-gray-500">Or continue with</span>
                 </div>
               </div>
-            </div>
+            </div> */}
 
             <div className="mt-6">
               <form onSubmit={handleSubmit} className="space-y-6">

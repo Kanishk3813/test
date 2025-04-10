@@ -663,7 +663,6 @@ export default function EditLessonPage() {
                     onChange={(e) => updateLearningOutcome(index, e.target.value)}
                     placeholder="By the end of this lesson, students will be able to..."
                   />
-                  // Continuing from where the code left off - completing the remove learning outcome button
                   <button
                     className="ml-2 text-red-500 hover:text-red-700"
                     onClick={() => removeLearningOutcome(index)}

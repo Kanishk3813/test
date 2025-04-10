@@ -14,7 +14,8 @@ import {
   getDoc,
   where,
   deleteDoc,
-  setDoc
+  setDoc,
+  increment
 } from 'firebase/firestore';
 import { 
   getStorage 
@@ -435,5 +436,56 @@ export async function updateLesson(id: string, lesson: Lesson, userId: string): 
   } catch (error) {
     console.error('Error updating lesson:', error);
     throw error;
+  }
+}
+
+/**
+ * Fetches all public lessons from all users
+ * @returns {Promise<Lesson[]>} Array of public lessons
+ */
+export async function getAllPublicLessons(): Promise<Lesson[]> {
+  try {
+    const lessonsRef = collection(db, 'lessons');
+    
+    // Query all lessons since we don't have publish controls yet
+    const q = query(
+      lessonsRef,
+      orderBy('createdAt', 'desc')
+    );
+    
+    const querySnapshot = await getDocs(q);
+    const lessons: Lesson[] = [];
+    
+    querySnapshot.forEach((doc) => {
+      const lessonData = doc.data() as Lesson;
+      
+      // Include all lessons for now (we'll add filtering later)
+      lessons.push({
+        id: doc.id,
+        ...lessonData,
+        views: lessonData.views || 0,  // Default to 0 if views doesn't exist
+      });
+    });
+
+    return lessons;
+  } catch (error) {
+    console.error('Error getting public lessons:', error);
+    throw error;
+  }
+}
+
+/**
+ * Increments the view count for a lesson
+ * @param {string} lessonId - The ID of the lesson to increment views for
+ */
+export async function incrementLessonViews(lessonId: string): Promise<void> {
+  try {
+    const lessonRef = doc(db, 'lessons', lessonId);
+    await updateDoc(lessonRef, {
+      views: increment(1)
+    });
+  } catch (error) {
+    console.error('Error incrementing lesson views:', error);
+    // Don't throw the error to prevent disrupting user experience
   }
 }

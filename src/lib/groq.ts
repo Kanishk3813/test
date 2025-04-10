@@ -92,6 +92,8 @@ Do not include any explanatory text before or after the JSON. Respond only with 
       status: 'draft',
       author: 'AI Generator',
       userId: data.userId // Add userId to the lesson object
+      ,
+      customId: ''
     };
 
     return lesson;
@@ -133,7 +135,8 @@ Do not include any explanatory text before or after the JSON. Respond only with 
       updatedAt: now,
       status: 'draft',
       author: 'AI Generator',
-      userId: data.userId 
+      userId: data.userId,
+      customId: '' // Add a default value for customId
     };
   }
 }

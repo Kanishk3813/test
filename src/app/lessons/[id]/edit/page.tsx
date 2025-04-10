@@ -7,6 +7,7 @@ import { getLessonById, updateLesson } from '@/lib/firebase';
 import { Lesson } from '@/lib/types';
 import Link from 'next/link';
 import { Button } from '@/app/components/ui/Button';
+import { auth } from '../../../../lib/firebase';
 
 interface ContentSection {
   id: string;
@@ -42,10 +43,18 @@ export default function EditLessonPage() {
         setIsLoading(false);
         return;
       }
-
+      
+      const currentUser = auth.currentUser;
+      
+      if (!currentUser || !currentUser.uid) {
+        setError('User not authenticated');
+        setIsLoading(false);
+        return;
+      }
+      
       try {
         console.log("Fetching lesson with ID:", id);
-        const lessonData = await getLessonById(id);
+        const lessonData = await getLessonById(id, currentUser.uid);
         console.log("Lesson data received:", lessonData);
         
         if (lessonData) {
@@ -258,6 +267,14 @@ export default function EditLessonPage() {
       return;
     }
   
+    // Get the current user
+    const currentUser = auth.currentUser;
+    
+    if (!currentUser || !currentUser.uid) {
+      setError('User not authenticated');
+      return;
+    }
+  
     try {
       setIsSaving(true);
       
@@ -279,7 +296,7 @@ export default function EditLessonPage() {
       };
       
       console.log(`Updating lesson with ID: ${lessonId}`);
-      await updateLesson(lessonId, updatedLesson);
+      await updateLesson(lessonId, updatedLesson, currentUser.uid);
       
       alert('Lesson updated successfully!');
       router.push(`/lessons/${lessonId}`);

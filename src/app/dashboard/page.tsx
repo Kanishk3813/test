@@ -1,4 +1,3 @@
-// src/app/dashboard/page.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,22 +6,31 @@ import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
 import { getAllLessons, getAllModulesData } from "@/lib/firebase";
 import { Lesson, Module } from "@/lib/types";
+import { useAuth } from "@/lib/AuthContext";
 
 export default function Dashboard() {
   const [recentLessons, setRecentLessons] = useState<Lesson[]>([]);
   const [modules, setModules] = useState<Module[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
+  const { currentUser } = useAuth();
 
   useEffect(() => {
     async function fetchData() {
       try {
+        if (!currentUser) {
+          console.log("No user logged in");
+          setIsLoading(false);
+          return;
+        }
+
         setIsLoading(true);
 
-        const lessons = await getAllLessons();
+        // Pass the user ID to the Firebase functions
+        const lessons = await getAllLessons(currentUser.id);
         console.log("Retrieved lessons:", lessons); 
         setRecentLessons(lessons);
 
-        const moduleData = await getAllModulesData();
+        const moduleData = await getAllModulesData(currentUser.id);
         console.log("Retrieved modules:", moduleData);
         setModules(moduleData);
         
@@ -34,14 +42,31 @@ export default function Dashboard() {
     }
 
     fetchData();
-  }, []);
+  }, [currentUser]);
+
+  if (!currentUser) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="text-center p-8">
+          <h2 className="text-xl font-semibold text-gray-700">
+            Please log in to view your dashboard
+          </h2>
+          <div className="mt-4">
+            <Link href="/auth/login">
+              <Button>Sign In</Button>
+            </Link>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8">
         <div>
           <h1 className="text-2xl font-bold mb-1">Dashboard</h1>
-          <p className="text-gray-600">Manage your courses and lessons</p>
+          <p className="text-gray-600">Welcome, {currentUser.name || currentUser.email}</p>
         </div>
         <div className="mt-4 md:mt-0">
           <Link href="/lesson-generator">

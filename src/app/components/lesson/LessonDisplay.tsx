@@ -1,12 +1,10 @@
-// Updated src/app/components/lesson/LessonDisplay.tsx
-'use client';
-
 import { Lesson } from '@/lib/types';
 import { LessonSection } from './LessonSection';
 import { Button } from '../ui/Button';
-import { useState } from 'react';
-import { saveLesson } from '@/lib/firebase';
+import { useState, useEffect } from 'react';
+import { saveLesson, auth } from '@/lib/firebase';
 import { useRouter } from 'next/navigation';
+import { onAuthStateChanged } from 'firebase/auth';
 
 interface LessonDisplayProps {
   lesson: Lesson;
@@ -16,7 +14,20 @@ interface LessonDisplayProps {
 export function LessonDisplay({ lesson, viewOnly = false }: LessonDisplayProps) {
   const [activeTab, setActiveTab] = useState<string>('preview');
   const [isSaving, setIsSaving] = useState<boolean>(false);
+  const [userId, setUserId] = useState<string | null>(null);
   const router = useRouter();
+  
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
   
   const handleDownload = () => {
     const lessonText = `# ${lesson.title}
@@ -40,7 +51,6 @@ ${lesson.activities.map(activity => `### ${activity.title}\n${activity.instructi
 ${lesson.assessment}
 `;
 
-    // Create blob and download link
     const blob = new Blob([lessonText], { type: 'text/markdown' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -53,6 +63,11 @@ ${lesson.assessment}
   };
 
   const handleSave = async () => {
+    if (!userId) {
+      alert('You must be logged in to save lessons');
+      return;
+    }
+    
     try {
       setIsSaving(true);
       const lessonToSave = {
@@ -61,7 +76,7 @@ ${lesson.assessment}
         module: lesson.courseTopic || 'Uncategorized',
       };
       
-      await saveLesson(lessonToSave);
+      await saveLesson(lessonToSave, userId);
       setIsSaving(false);
       
       alert('Lesson saved successfully!');

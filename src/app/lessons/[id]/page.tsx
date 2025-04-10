@@ -7,6 +7,8 @@ import { getAllLessons, getLessonById } from '@/lib/firebase';
 import { Lesson } from '@/lib/types';
 import { LessonDisplay } from '@/app/components/lesson/LessonDisplay';
 import Link from 'next/link';
+import { auth } from '@/lib/firebase'; // Import the auth object
+import { onAuthStateChanged } from 'firebase/auth'; // Import this from firebase/auth
 
 export default function LessonViewPage() {
   const params = useParams();
@@ -15,7 +17,24 @@ export default function LessonViewPage() {
   const [lesson, setLesson] = useState<Lesson | null>(null);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
 
+  // First, listen for auth state changes to get the user ID
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        setError('Please log in to view lessons');
+        setIsLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
+
+  // Then, use the user ID to fetch the lesson
   useEffect(() => {
     async function fetchLesson() {
       if (!id || typeof id !== 'string') {
@@ -24,21 +43,26 @@ export default function LessonViewPage() {
         return;
       }
 
+      // Check if user is authenticated before proceeding
+      if (!userId) {
+        return; // Don't proceed if no user ID (first useEffect will handle error)
+      }
+
       try {
         console.log('Fetching lesson with ID:', id);
         
-        let lessonData = await getLessonById(id);
+        let lessonData = await getLessonById(id, userId);
         
         if (!lessonData) {
           if (id.includes('_')) {
             const baseId = id.split('_')[0];
             console.log('Trying with base ID:', baseId);
-            lessonData = await getLessonById(baseId);
+            lessonData = await getLessonById(baseId, userId);
           }
           
           if (!lessonData) {
             console.log('Trying to find lesson by scanning all lessons');
-            const allLessons = await getAllLessons();
+            const allLessons = await getAllLessons(userId);
             
             const foundLesson = allLessons.find(lesson => {
               return lesson.id && 
@@ -68,7 +92,7 @@ export default function LessonViewPage() {
     }
 
     fetchLesson();
-  }, [id]);
+  }, [id, userId]);
 
   if (isLoading) {
     return (

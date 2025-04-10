@@ -30,6 +30,7 @@ export interface User {
     updatedAt: string;
     status: 'draft' | 'published';
     author?: string;
+    userId: string;
   }
 
   export interface Module {
@@ -43,6 +44,7 @@ export interface User {
     updatedAt: string;
     completionPercentage?: number; 
     status: 'active' | 'draft' | 'archived';
+    userId: string;
   }
   
   export interface Course {

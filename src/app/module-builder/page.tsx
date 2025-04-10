@@ -4,9 +4,10 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { Card } from "../components/ui/Card";
 import { Button } from "../components/ui/Button";
-import { getAllLessons } from "@/lib/firebase";
+import { getAllLessons, createModule } from "@/lib/firebase";
 import { Lesson, Module } from "@/lib/types";
-import { createModule } from "@/lib/firebase";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function ModuleBuilder() {
   const router = useRouter();
@@ -22,12 +23,33 @@ export default function ModuleBuilder() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedLessons, setSelectedLessons] = useState<string[]>([]);
   const [errorMessage, setErrorMessage] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Add authentication listener to get the user ID
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        setErrorMessage("Please log in to create modules");
+        setIsLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function fetchLessons() {
+      // Don't fetch lessons if there's no user ID
+      if (!userId) {
+        return;
+      }
+
       try {
         setIsLoading(true);
-        const lessons = await getAllLessons();
+        const lessons = await getAllLessons(userId);
         setAllLessons(lessons);
         setIsLoading(false);
       } catch (error) {
@@ -38,7 +60,7 @@ export default function ModuleBuilder() {
     }
 
     fetchLessons();
-  }, []);
+  }, [userId]); // Add userId as a dependency
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -63,6 +85,11 @@ export default function ModuleBuilder() {
       return;
     }
 
+    if (!userId) {
+      setErrorMessage("You must be logged in to create a module");
+      return;
+    }
+
     try {
       setIsLoading(true);
       const moduleId = module.title.replace(/\s+/g, "-").toLowerCase();
@@ -78,9 +105,10 @@ export default function ModuleBuilder() {
         createdAt: now,
         updatedAt: now,
         status: module.status as 'active' | 'draft' | 'archived',
+        userId: userId, // Add the userId to the Module object
       };
 
-      await createModule(newModule);
+      await createModule(newModule, userId);
       router.push("/dashboard");
     } catch (error) {
       console.error("Error creating module:", error);
@@ -88,6 +116,23 @@ export default function ModuleBuilder() {
       setIsLoading(false);
     }
   };
+
+  // Show login message if user is not logged in
+  if (!userId && !isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8">
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          <p>Please log in to create modules.</p>
+          <button 
+            className="mt-4 bg-blue-600 hover:bg-blue-700 text-white font-medium py-2 px-4 rounded-md"
+            onClick={() => router.push("/login")}
+          >
+            Go to Login
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8">

@@ -13,6 +13,7 @@ export async function generateLessonWithGroq(data: {
   targetAudience: string;
   difficultyLevel: string;
   additionalInstructions?: string;
+  userId: string; // Add userId to the function parameters
 }): Promise<Lesson> {
   const GROQ_API_KEY = "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";
 
@@ -89,7 +90,8 @@ Do not include any explanatory text before or after the JSON. Respond only with 
       createdAt: now,
       updatedAt: now,
       status: 'draft',
-      author: 'AI Generator'
+      author: 'AI Generator',
+      userId: data.userId // Add userId to the lesson object
     };
 
     return lesson;
@@ -130,7 +132,8 @@ Do not include any explanatory text before or after the JSON. Respond only with 
       createdAt: now,
       updatedAt: now,
       status: 'draft',
-      author: 'AI Generator'
+      author: 'AI Generator',
+      userId: data.userId 
     };
   }
 }

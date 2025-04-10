@@ -1,128 +1,218 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+// src/lib/AuthContext.tsx
+'use client';
+import React, { createContext, useContext, useState, useEffect } from 'react';
 import { 
-  User as FirebaseUser, 
-  createUserWithEmailAndPassword, 
+  onAuthStateChanged, 
   signInWithEmailAndPassword, 
-  signOut as firebaseSignOut,
-  onAuthStateChanged,
-  GoogleAuthProvider,
+  createUserWithEmailAndPassword,
   signInWithPopup,
-  updateProfile
+  GoogleAuthProvider,
+  signOut as firebaseSignOut,
+  setPersistence,
+  browserLocalPersistence,
+  getIdToken
 } from 'firebase/auth';
 import { auth, db } from './firebase';
-import { doc, getDoc, setDoc, serverTimestamp } from 'firebase/firestore';
-import { User } from './types';
+import { setDoc, doc, getDoc } from 'firebase/firestore';
+
+// Define the User type
+type User = {
+  id: string;
+  email: string | null;
+  name?: string | null;
+  photoURL?: string | null;
+};
 
 interface AuthContextType {
   currentUser: User | null;
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string, name: string) => Promise<void>;
-  signOut: () => Promise<void>;
   signInWithGoogle: () => Promise<void>;
+  signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-export const useAuth = (): AuthContextType => {
-  const context = useContext(AuthContext);
-  if (!context) {
-    throw new Error('useAuth must be used within an AuthProvider');
-  }
-  return context;
-};
+// Local storage keys
+const USER_STORAGE_KEY = 'coursegpt_user';
+const AUTH_CHECKED_KEY = 'auth_checked';
 
-export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const formatUser = async (user: FirebaseUser): Promise<User> => {
-    const userRef = doc(db, 'users', user.uid);
-    const userDoc = await getDoc(userRef);
-    
-    if (!userDoc.exists()) {
-      const newUser: User = {
-        id: user.uid,
-        email: user.email!,
-        name: user.displayName || null, 
-        photoURL: user.photoURL || null, 
-        createdAt: new Date().toISOString(),
-      };
-      
-      await setDoc(userRef, {
-        ...newUser,
-        createdAt: serverTimestamp(),
-      });
-      
-      return newUser;
-    }
-    
-    return userDoc.data() as User;
-  };
-
+  // Configure auth persistence when component mounts
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        const formattedUser = await formatUser(user);
-        setCurrentUser(formattedUser);
+    // Set browser persistence so auth state survives page reloads
+    setPersistence(auth, browserLocalPersistence);
+    
+    // Try to load cached user first to prevent flickering UI
+    const cachedUserJson = localStorage.getItem(USER_STORAGE_KEY);
+    if (cachedUserJson) {
+      try {
+        const cachedUser = JSON.parse(cachedUserJson);
+        setCurrentUser(cachedUser);
+        setLoading(false);
+      } catch (e) {
+        console.error("Error parsing cached user:", e);
+      }
+    }
+
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      // This will only run on initial load and when auth state actually changes
+      if (firebaseUser) {
+        try {
+          // Get additional user data from Firestore if needed
+          const userRef = doc(db, 'users', firebaseUser.uid);
+          const userDoc = await getDoc(userRef);
+          
+          const userData: User = {
+            id: firebaseUser.uid,
+            email: firebaseUser.email,
+            name: firebaseUser.displayName || userDoc.data()?.name || null,
+            photoURL: firebaseUser.photoURL || null,
+          };
+          
+          // Cache user data in localStorage
+          localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+          localStorage.setItem(AUTH_CHECKED_KEY, 'true');
+          
+          setCurrentUser(userData);
+        } catch (error) {
+          console.error("Error fetching user data:", error);
+        }
       } else {
+        // User is signed out
+        localStorage.removeItem(USER_STORAGE_KEY);
+        localStorage.setItem(AUTH_CHECKED_KEY, 'true');
         setCurrentUser(null);
       }
       setLoading(false);
     });
 
-    return unsubscribe;
+    // Cleanup function
+    return () => unsubscribe();
   }, []);
 
+  // Sign in function
   const signIn = async (email: string, password: string) => {
+    setLoading(true);
     try {
-      await signInWithEmailAndPassword(auth, email, password);
-    } catch (error) {
-      console.error('Error signing in:', error);
-      throw error;
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
+      
+      // Get additional user data from Firestore
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      const userData: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || userDoc.data()?.name || null,
+        photoURL: firebaseUser.photoURL || null,
+      };
+      
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+      setCurrentUser(userData);
+    } finally {
+      setLoading(false);
     }
   };
 
+  // Sign up function
   const signUp = async (email: string, password: string, name: string) => {
+    setLoading(true);
     try {
-      const { user } = await createUserWithEmailAndPassword(auth, email, password);
+      const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+      const firebaseUser = userCredential.user;
       
-      await updateProfile(user, { displayName: name });
+      // Create user document in Firestore
+      await setDoc(doc(db, 'users', firebaseUser.uid), {
+        email,
+        name,
+        createdAt: new Date().toISOString()
+      });
       
-      await formatUser(user);
-    } catch (error) {
-      console.error('Error signing up:', error);
-      throw error;
-    }
-  };
-
-  const signOut = async () => {
-    try {
-      await firebaseSignOut(auth);
-    } catch (error) {
-      console.error('Error signing out:', error);
-      throw error;
+      const userData: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: name,
+        photoURL: null,
+      };
+      
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+      setCurrentUser(userData);
+    } finally {
+      setLoading(false);
     }
   };
 
   const signInWithGoogle = async () => {
+    setLoading(true);
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
-    } catch (error) {
-      console.error('Error signing in with Google:', error);
-      throw error;
+      const userCredential = await signInWithPopup(auth, provider);
+      const firebaseUser = userCredential.user;
+      
+      // Check if user exists in Firestore, if not create a new document
+      const userRef = doc(db, 'users', firebaseUser.uid);
+      const userDoc = await getDoc(userRef);
+      
+      if (!userDoc.exists()) {
+        await setDoc(userRef, {
+          email: firebaseUser.email,
+          name: firebaseUser.displayName,
+          photoURL: firebaseUser.photoURL,
+          createdAt: new Date().toISOString()
+        });
+      }
+      
+      const userData: User = {
+        id: firebaseUser.uid,
+        email: firebaseUser.email,
+        name: firebaseUser.displayName || null,
+        photoURL: firebaseUser.photoURL || null,
+      };
+      
+      localStorage.setItem(USER_STORAGE_KEY, JSON.stringify(userData));
+      setCurrentUser(userData);
+    } finally {
+      setLoading(false);
     }
   };
 
-  const value = {
+  const signOut = async () => {
+    setLoading(true);
+    try {
+      await firebaseSignOut(auth);
+      localStorage.removeItem(USER_STORAGE_KEY);
+      setCurrentUser(null);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const contextValue: AuthContextType = {
     currentUser,
     loading,
     signIn,
     signUp,
-    signOut,
     signInWithGoogle,
+    signOut
   };
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
-};
+  return (
+    <AuthContext.Provider value={contextValue}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export function useAuth() {
+  const context = useContext(AuthContext);
+  if (context === undefined) {
+    throw new Error('useAuth must be used within an AuthProvider');
+  }
+  return context;
+}

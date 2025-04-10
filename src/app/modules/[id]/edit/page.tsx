@@ -7,6 +7,8 @@ import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { getModuleById, getAllLessons, updateModule, deleteModule } from "@/lib/firebase";
 import { Module, Lesson } from "@/lib/types";
+import { auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 
 export default function EditModule() {
   const params = useParams();
@@ -21,14 +23,35 @@ export default function EditModule() {
   const [isDeleting, setIsDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [error, setError] = useState("");
+  const [userId, setUserId] = useState<string | null>(null);
+
+  // Add authentication listener to get the user ID
+  useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      if (user) {
+        setUserId(user.uid);
+      } else {
+        setUserId(null);
+        setError("Please log in to edit modules");
+        setIsLoading(false);
+      }
+    });
+
+    return () => unsubscribe();
+  }, []);
 
   useEffect(() => {
     async function fetchData() {
+      // Don't fetch data if there's no user ID
+      if (!userId) {
+        return;
+      }
+
       try {
         setIsLoading(true);
         const [moduleData, lessons] = await Promise.all([
-          getModuleById(moduleId),
-          getAllLessons()
+          getModuleById(moduleId, userId),
+          getAllLessons(userId)
         ]);
         
         if (!moduleData) {
@@ -48,10 +71,10 @@ export default function EditModule() {
       }
     }
 
-    if (moduleId) {
+    if (moduleId && userId) {
       fetchData();
     }
-  }, [moduleId]);
+  }, [moduleId, userId]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -71,7 +94,7 @@ export default function EditModule() {
   };
 
   const handleSave = async () => {
-    if (!module) return;
+    if (!module || !userId) return;
     
     try {
       setIsSaving(true);
@@ -82,7 +105,7 @@ export default function EditModule() {
         updatedAt: new Date().toISOString()
       };
       
-      await updateModule(updatedModule);
+      await updateModule(updatedModule, userId);
       router.push(`/modules/${moduleId}`);
     } catch (error) {
       console.error("Error updating module:", error);
@@ -92,11 +115,11 @@ export default function EditModule() {
   };
 
   const handleDelete = async () => {
-    if (!module) return;
+    if (!module || !userId) return;
     
     try {
       setIsDeleting(true);
-      await deleteModule(moduleId);
+      await deleteModule(moduleId, userId);
       router.push("/dashboard");
     } catch (error) {
       console.error("Error deleting module:", error);

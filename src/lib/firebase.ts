@@ -1,4 +1,3 @@
-// src/lib/firebase.ts
 import { initializeApp } from 'firebase/app';
 import { 
   getAuth 
@@ -40,12 +39,14 @@ export default app;
 /**
  * Save a lesson to Firestore
  * @param lesson The lesson object to save
+ * @param userId The ID of the user who owns this lesson
  * @returns The ID of the saved lesson
  */
-export async function saveLesson(lesson: Lesson): Promise<string> {
+export async function saveLesson(lesson: Lesson, userId: string): Promise<string> {
   try {
     const docRef = await addDoc(collection(db, 'lessons'), {
       ...lesson,
+      userId: userId, // Associate the lesson with the user
       createdAt: new Date().toISOString(),
     });
     return docRef.id;
@@ -56,12 +57,17 @@ export async function saveLesson(lesson: Lesson): Promise<string> {
 }
 
 /**
- * Retrieve all lessons from Firestore
+ * Retrieve all lessons for a specific user from Firestore
+ * @param userId The ID of the user whose lessons to fetch
  * @returns Array of lessons
  */
-export async function getAllLessons(): Promise<Lesson[]> {
+export async function getAllLessons(userId: string): Promise<Lesson[]> {
   try {
-    const q = query(collection(db, 'lessons'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(db, 'lessons'), 
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
     const querySnapshot = await getDocs(q);
     
     const lessons: Lesson[] = [];
@@ -77,14 +83,16 @@ export async function getAllLessons(): Promise<Lesson[]> {
 }
 
 /**
- * Get lessons by module/course topic
+ * Get lessons by module/course topic for a specific user
  * @param module The module/course topic to filter by
+ * @param userId The ID of the user whose lessons to fetch
  * @returns Array of lessons in the specified module
  */
-export async function getLessonsByModule(module: string): Promise<Lesson[]> {
+export async function getLessonsByModule(module: string, userId: string): Promise<Lesson[]> {
   try {
     const q = query(
       collection(db, 'lessons'),
+      where('userId', '==', userId),
       orderBy('createdAt', 'desc')
     );
     
@@ -106,11 +114,12 @@ export async function getLessonsByModule(module: string): Promise<Lesson[]> {
 }
 
 /**
- * Get lessons by their IDs
+ * Get lessons by their IDs for a specific user
  * @param lessonIds Array of lesson IDs to fetch
+ * @param userId The ID of the user whose lessons to fetch
  * @returns Array of lessons with the specified IDs
  */
-export async function getLessonsByIds(lessonIds: string[]): Promise<Lesson[]> {
+export async function getLessonsByIds(lessonIds: string[], userId: string): Promise<Lesson[]> {
   try {
     if (!lessonIds || lessonIds.length === 0) {
       return [];
@@ -118,7 +127,7 @@ export async function getLessonsByIds(lessonIds: string[]): Promise<Lesson[]> {
     
     const lessons: Lesson[] = [];
     
-    const allLessons = await getAllLessons();
+    const allLessons = await getAllLessons(userId);
     
     const filteredLessons = allLessons.filter(lesson => 
       lesson.id && lessonIds.includes(lesson.id)
@@ -136,12 +145,13 @@ export async function getLessonsByIds(lessonIds: string[]): Promise<Lesson[]> {
 }
 
 /**
- * Get all unique modules from lessons
+ * Get all unique modules from lessons for a specific user
+ * @param userId The ID of the user whose modules to fetch
  * @returns Array of unique module names
  */
-export async function getAllModules(): Promise<string[]> {
+export async function getAllModules(userId: string): Promise<string[]> {
   try {
-    const lessons = await getAllLessons();
+    const lessons = await getAllLessons(userId);
     
     const modules = new Set<string>();
     lessons.forEach((lesson) => {
@@ -162,14 +172,16 @@ export async function getAllModules(): Promise<string[]> {
 /**
  * Create a new module in Firestore
  * @param module The module object to create
+ * @param userId The ID of the user who owns this module
  * @returns The ID of the created module
  */
-export async function createModule(module: Module): Promise<string> {
+export async function createModule(module: Module, userId: string): Promise<string> {
   try {
     if (module.id) {
       const docRef = doc(db, 'modules', module.id);
       await setDoc(docRef, {
         ...module,
+        userId: userId, // Associate the module with the user
         createdAt: module.createdAt || new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -177,6 +189,7 @@ export async function createModule(module: Module): Promise<string> {
     } else {
       const docRef = await addDoc(collection(db, 'modules'), {
         ...module,
+        userId: userId, // Associate the module with the user
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       });
@@ -189,17 +202,24 @@ export async function createModule(module: Module): Promise<string> {
 }
 
 /**
- * Get a module by its ID
+ * Get a module by its ID, ensuring it belongs to the specified user
  * @param id The ID of the module to fetch
+ * @param userId The ID of the user who should own this module
  * @returns The module object or null if not found
  */
-export async function getModuleById(id: string): Promise<Module | null> {
+export async function getModuleById(id: string, userId: string): Promise<Module | null> {
   try {
     const docRef = doc(db, 'modules', id);
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      return { id: docSnap.id, ...docSnap.data() } as Module;
+      const moduleData = docSnap.data() as Module;
+      
+      // Only return the module if it belongs to the user
+      if (moduleData.userId === userId) {
+        const { id: _, ...moduleDataWithoutId } = moduleData;
+        return { id: docSnap.id, ...moduleDataWithoutId };
+      }
     }
     
     return null;
@@ -210,12 +230,17 @@ export async function getModuleById(id: string): Promise<Module | null> {
 }
 
 /**
- * Get all modules from Firestore
+ * Get all modules for a specific user from Firestore
+ * @param userId The ID of the user whose modules to fetch
  * @returns Array of modules
  */
-export async function getAllModulesData(): Promise<Module[]> {
+export async function getAllModulesData(userId: string): Promise<Module[]> {
   try {
-    const q = query(collection(db, 'modules'), orderBy('createdAt', 'desc'));
+    const q = query(
+      collection(db, 'modules'), 
+      where('userId', '==', userId),
+      orderBy('createdAt', 'desc')
+    );
     const querySnapshot = await getDocs(q);
     
     const modules: Module[] = [];
@@ -233,17 +258,25 @@ export async function getAllModulesData(): Promise<Module[]> {
 /**
  * Update an existing module
  * @param module The module object with updated data
+ * @param userId The ID of the user who should own this module
  */
-export async function updateModule(module: Module): Promise<void> {
+export async function updateModule(module: Module, userId: string): Promise<void> {
   try {
     if (!module.id) {
       throw new Error('Cannot update module: No module ID provided');
+    }
+    
+    // First verify the module belongs to the user
+    const existingModule = await getModuleById(module.id, userId);
+    if (!existingModule) {
+      throw new Error('Cannot update module: Module not found or not owned by user');
     }
     
     const docRef = doc(db, 'modules', module.id);
     
     const moduleWithUpdatedTime = {
       ...module,
+      userId: userId, // Ensure userId is maintained
       updatedAt: new Date().toISOString()
     };
     
@@ -255,11 +288,18 @@ export async function updateModule(module: Module): Promise<void> {
 }
 
 /**
- * Delete a module
+ * Delete a module, ensuring it belongs to the specified user
  * @param id The ID of the module to delete
+ * @param userId The ID of the user who should own this module
  */
-export async function deleteModule(id: string): Promise<void> {
+export async function deleteModule(id: string, userId: string): Promise<void> {
   try {
+    // First verify the module belongs to the user
+    const existingModule = await getModuleById(id, userId);
+    if (!existingModule) {
+      throw new Error('Cannot delete module: Module not found or not owned by user');
+    }
+    
     const docRef = doc(db, 'modules', id);
     await deleteDoc(docRef);
   } catch (error) {
@@ -269,11 +309,12 @@ export async function deleteModule(id: string): Promise<void> {
 }
 
 /**
- * Get a lesson by its ID
+ * Get a lesson by its ID, ensuring it belongs to the specified user
  * @param id The ID of the lesson to fetch
+ * @param userId The ID of the user who should own this lesson
  * @returns The lesson object or null if not found
  */
-export async function getLessonById(id: string): Promise<Lesson | null> {
+export async function getLessonById(id: string, userId: string): Promise<Lesson | null> {
   try {
     const cleanId = id.trim();
     console.log(`Attempting to fetch lesson with clean ID: ${cleanId}`);
@@ -282,8 +323,13 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
     const docSnap = await getDoc(docRef);
     
     if (docSnap.exists()) {
-      console.log(`Found lesson with ID: ${cleanId}`);
-      return { id: docSnap.id, ...docSnap.data() } as Lesson;
+      const lessonData = docSnap.data() as Lesson;
+      
+      // Only return the lesson if it belongs to the user
+      if (lessonData.userId === userId) {
+        console.log(`Found lesson with ID: ${cleanId}`);
+        return { id: docSnap.id, ...lessonData };
+      }
     } 
     
     console.log(`No lesson found with ID: ${cleanId}`);
@@ -295,8 +341,13 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
       const altDocSnap = await getDoc(altDocRef);
       
       if (altDocSnap.exists()) {
-        console.log(`Found lesson with ID without prefix: ${idWithoutPrefix}`);
-        return { id: altDocSnap.id, ...altDocSnap.data() } as Lesson;
+        const lessonData = altDocSnap.data() as Lesson;
+        
+        // Only return the lesson if it belongs to the user
+        if (lessonData.userId === userId) {
+          console.log(`Found lesson with ID without prefix: ${idWithoutPrefix}`);
+          return { id: altDocSnap.id, ...lessonData };
+        }
       }
     }
     
@@ -308,14 +359,22 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
         const firstPartSnap = await getDoc(firstPartRef);
         
         if (firstPartSnap.exists()) {
-          console.log(`Found lesson with first part ID: ${firstPart}`);
-          return { id: firstPartSnap.id, ...firstPartSnap.data() } as Lesson;
+          const lessonData = firstPartSnap.data() as Lesson;
+          
+          // Only return the lesson if it belongs to the user
+          if (lessonData.userId === userId) {
+            console.log(`Found lesson with first part ID: ${firstPart}`);
+            return { id: firstPartSnap.id, ...lessonData };
+          }
         }
       }
     }
     
     console.log("Trying to find lesson by querying all lessons");
-    const q = query(collection(db, 'lessons'));
+    const q = query(
+      collection(db, 'lessons'),
+      where('userId', '==', userId) // Filter by user ID
+    );
     const querySnapshot = await getDocs(q);
     
     let foundLesson: Lesson | null = null;
@@ -348,22 +407,24 @@ export async function getLessonById(id: string): Promise<Lesson | null> {
 }
 
 /**
- * Update an existing lesson
+ * Update an existing lesson, ensuring it belongs to the specified user
  * @param id The ID of the lesson to update
  * @param lesson The updated lesson data
+ * @param userId The ID of the user who should own this lesson
  */
-export async function updateLesson(id: string, lesson: Lesson): Promise<void> {
+export async function updateLesson(id: string, lesson: Lesson, userId: string): Promise<void> {
   try {
-    const actualLesson = await getLessonById(id);
+    const actualLesson = await getLessonById(id, userId);
     
     if (!actualLesson || !actualLesson.id) {
-      throw new Error(`Cannot update lesson: No lesson found with ID ${id}`);
+      throw new Error(`Cannot update lesson: No lesson found with ID ${id} for this user`);
     }
     
     const docRef = doc(db, 'lessons', actualLesson.id);
     
     const lessonWithUpdatedTime = {
       ...lesson,
+      userId: userId, // Ensure userId is maintained
       updatedAt: new Date().toISOString()
     };
     

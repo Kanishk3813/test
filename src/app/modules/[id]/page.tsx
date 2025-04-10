@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState, useEffect } from "react";
@@ -7,12 +8,15 @@ import { Card } from "@/app/components/ui/Card";
 import { Button } from "@/app/components/ui/Button";
 import { getModuleById, getLessonsByIds } from "@/lib/firebase";
 import { Module, Lesson } from "@/lib/types";
+import { auth } from "@/lib/firebase"; // Import auth to get the current user
+import { useAuthState } from "react-firebase-hooks/auth"; // You'll need to install this package
 
 export default function ModuleDetails() {
   const params = useParams();
   const router = useRouter();
   const moduleId = params.id as string;
   
+  const [user] = useAuthState(auth); // Get the current user
   const [module, setModule] = useState<Module | null>(null);
   const [moduleLessons, setModuleLessons] = useState<Lesson[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -21,8 +25,15 @@ export default function ModuleDetails() {
   useEffect(() => {
     async function fetchData() {
       try {
+        // Check if user is authenticated
+        if (!user || !user.uid) {
+          setError("You must be logged in to view this module");
+          setIsLoading(false);
+          return;
+        }
+
         setIsLoading(true);
-        const moduleData = await getModuleById(moduleId);
+        const moduleData = await getModuleById(moduleId, user.uid);
         
         if (!moduleData) {
           setError("Module not found");
@@ -33,7 +44,7 @@ export default function ModuleDetails() {
         setModule(moduleData);
         
         if (moduleData.lessons && moduleData.lessons.length > 0) {
-          const lessons = await getLessonsByIds(moduleData.lessons);
+          const lessons = await getLessonsByIds(moduleData.lessons, user.uid);
           setModuleLessons(lessons);
         }
         
@@ -48,7 +59,7 @@ export default function ModuleDetails() {
     if (moduleId) {
       fetchData();
     }
-  }, [moduleId]);
+  }, [moduleId, user]);
 
   const handleEditModule = () => {
     router.push(`/modules/${moduleId}/edit`);

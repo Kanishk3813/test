@@ -1,12 +1,47 @@
-// src/app/components/layout/Sidebar.tsx (continued)
+// src/app/components/layout/Sidebar.tsx
 'use client';
 
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+import { getAllLessons } from '@/lib/firebase';
+import { Lesson } from '@/lib/types';
+import { useAuth } from '@/lib/AuthContext';
 
 export function Sidebar() {
   const pathname = usePathname();
+  const { currentUser } = useAuth();
+  const [recentLessons, setRecentLessons] = useState<Lesson[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
   
+  useEffect(() => {
+    async function fetchRecentLessons() {
+      if (!currentUser) {
+        setIsLoading(false);
+        return;
+      }
+      
+      try {
+        const lessons = await getAllLessons(currentUser.id);
+        const sortedLessons = lessons
+          .sort((a, b) => {
+            const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+            const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+            return dateB - dateA;
+          })
+          .slice(0, 3);
+        
+        setRecentLessons(sortedLessons);
+        setIsLoading(false);
+      } catch (error) {
+        console.error("Error fetching recent lessons:", error);
+        setIsLoading(false);
+      }
+    }
+    
+    fetchRecentLessons();
+  }, [currentUser]);
+
   const navItems = [
     { name: 'Dashboard', href: '/dashboard', icon: 'M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6' },
     { name: 'Lesson Generator', href: '/lesson-generator', icon: 'M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253' },
@@ -46,26 +81,43 @@ export function Sidebar() {
         </ul>
         
         <div className="pt-5 mt-5 border-t border-gray-200">
-          <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider px-3 mb-3">
-            Recent Lessons
-          </h3>
-          <ul className="space-y-1">
-            <li>
-              <a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
-                Introduction to JavaScript
-              </a>
-            </li>
-            <li>
-              <a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
-                Data Structures Basics
-              </a>
-            </li>
-            <li>
-              <a href="#" className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100">
-                CSS Grid Layout
-              </a>
-            </li>
-          </ul>
+          <div className="flex justify-between items-center px-3 mb-3">
+            <h3 className="text-sm font-semibold text-gray-600 uppercase tracking-wider">
+              Recent Lessons
+            </h3>
+            <Link href="/alllessons" className="text-xs text-blue-600 hover:text-blue-800">
+              View All
+            </Link>
+          </div>
+          
+          {isLoading ? (
+            <div className="px-3 py-2">
+              <div className="animate-pulse space-y-2">
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+                <div className="h-4 bg-gray-200 rounded"></div>
+              </div>
+            </div>
+          ) : (
+            <ul className="space-y-1">
+              {recentLessons.length > 0 ? (
+                recentLessons.map((lesson) => (
+                  <li key={lesson.id}>
+                    <Link 
+                      href={`/lessons/${lesson.id}`}
+                      className="flex items-center px-3 py-2 text-sm font-medium rounded-lg text-gray-600 hover:bg-gray-100"
+                    >
+                      <span className="truncate">{lesson.title}</span>
+                    </Link>
+                  </li>
+                ))
+              ) : (
+                <li className="px-3 py-2 text-sm text-gray-500">
+                  No lessons found
+                </li>
+              )}
+            </ul>
+          )}
         </div>
       </div>
     </aside>

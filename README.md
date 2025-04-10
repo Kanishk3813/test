@@ -1,36 +1,166 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# CourseGPT
 
-## Getting Started
+![CourseGPT Logo](https://via.placeholder.com/150x150.png?text=CourseGPT)
 
-First, run the development server:
+## AI-Powered Course Authoring Platform
 
+CourseGPT is an intelligent authoring tool that empowers educators and content creators to efficiently create, organize, and enhance educational content. This innovative platform transforms the course creation process through AI-assisted content generation, structured templates, and intuitive organization tools.
+
+## 🚀 Features
+
+### Lesson Generator
+- Create high-quality educational content with AI assistance
+- Generate well-structured lessons with comprehensive components:
+  - Compelling titles and descriptions
+  - Clear learning outcomes
+  - Key concepts with definitions
+  - Engaging content with proper formatting
+  - Interactive activities with instructions
+  - Assessment materials to evaluate learning
+
+### Module Organization System
+- Group related lessons into cohesive modules
+- Track prerequisites, difficulty levels, and estimated completion times
+- Visualize course structure and lesson relationships
+
+### Interactive Content Editor
+- Intuitive interface for refining AI-generated content
+- Section-specific regeneration capabilities
+- Education-focused formatting tools
+
+## 📊 Dashboard
+
+The dashboard provides an overview of your course content, showing:
+- Total lessons created
+- Module completion rates
+- Recent lessons with quick access to view and edit
+
+## 🛠️ Tech Stack
+
+- **Frontend**: React/Next.js
+- **Styling**: Tailwind CSS
+- **Authentication**: Firebase Auth
+- **Database**: Firebase Firestore
+- **AI Integration**: Groq API with LLaMa 3 model
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Node.js 18.x or later
+- npm or yarn
+- Firebase account with Firestore database
+- Groq API key for AI content generation
+
+### Installation
+
+1. Clone the repository:
+```bash
+git clone https://github.com/Kanishk3813/test.git
+cd coursegpt
+```
+
+2. Install dependencies:
+```bash
+npm install
+# or
+yarn install
+```
+
+3. Set up environment variables:
+Create a `.env.local` file in the root directory with the following variables:
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=your_firebase_api_key
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=your_firebase_auth_domain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=your_firebase_project_id
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=your_firebase_storage_bucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=your_firebase_messaging_sender_id
+NEXT_PUBLIC_FIREBASE_APP_ID=your_firebase_app_id
+GROQ_API_KEY=your_groq_api_key
+```
+
+4. Run the development server:
 ```bash
 npm run dev
 # or
 yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+5. Open your browser and navigate to `http://localhost:3000`
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## 📂 Project Structure
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```
+src/
+├── app/                  # Next.js app directory
+│   ├── api/              # API routes
+│   ├── auth/             # Authentication pages
+│   ├── components/       # React components
+│   ├── dashboard/        # Dashboard page
+│   ├── lesson-generator/ # Lesson generator page
+│   ├── lessons/          # Lesson view/edit pages
+│   └── modules/          # Module management pages
+├── lib/                  # Utility functions and hooks
+│   ├── AuthContext.tsx   # Authentication context
+│   ├── firebase.ts       # Firebase configuration
+│   ├── groq.ts           # Groq API integration
+│   └── types.ts          # TypeScript types
+└── public/               # Static assets
+```
 
-## Learn More
+## ✨ Key Components
 
-To learn more about Next.js, take a look at the following resources:
+### LessonForm
+The `LessonForm` component provides an intuitive interface for collecting user input to generate new lessons. It includes fields for:
+- Course topic
+- Lesson title
+- Target audience
+- Difficulty level
+- Additional instructions
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+### LessonDisplay
+The `LessonDisplay` component renders a comprehensive view of a lesson, including all its sections:
+- Title and description
+- Learning outcomes
+- Key concepts
+- Main content
+- Activities
+- Assessment
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+It also provides options to save, edit, or download the lesson.
 
-## Deploy on Vercel
+### ModuleBuilder
+The `ModuleBuilder` component allows users to organize lessons into cohesive modules. Features include:
+- Drag-and-drop lesson arrangement
+- Module metadata management
+- Prerequisite linking
+- Module status tracking
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+### ContentEditor
+The `ContentEditor` component provides rich text editing capabilities specifically designed for educational content:
+- Section-specific editing
+- Formatting tools for educational content
+- Option to regenerate specific sections
+- Preview functionality
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🔥 Firebase Integration
+
+The project uses Firebase for:
+- User authentication (email/password and Google Sign-In)
+- Firestore database for storing lessons and modules
+- Storage for any uploaded assets
+
+## 🤖 AI Integration
+
+CourseGPT leverages the Groq API with the LLaMa 3 model to generate high-quality educational content. The integration:
+- Takes user input about lesson topics and requirements
+- Generates structured educational content with proper formatting
+- Returns JSON-formatted lesson data ready for display and editing
+
+## 🌟 Acknowledgements
+
+- [Next.js](https://nextjs.org/) - React framework
+- [Tailwind CSS](https://tailwindcss.com/) - CSS framework
+- [Firebase](https://firebase.google.com/) - Authentication and database
+- [Groq](https://groq.com/) - AI language model provider
+
